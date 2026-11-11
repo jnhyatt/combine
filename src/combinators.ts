@@ -158,6 +158,36 @@ export const seq = <T extends [...Parser<unknown>[]]>(
 };
 
 /**
+ * Inserts `Sep` between every adjacent pair of types in a tuple.
+ */
+type Intersperse<T extends [...unknown[]], Sep> = T extends [
+  infer Head,
+  ...infer Tail extends [unknown, ...unknown[]],
+]
+  ? [Head, Sep, ...Intersperse<Tail, Sep>]
+  : T;
+
+/**
+ * Like `seq` but with a separating parser interspersed between each adjacent
+ * pair of elements. This is distinct from `sepBy` in the same way that `seq` is
+ * different from `many`, in that the parsers don't have to be the same type.
+ * Useful for things like allowing whitespace or comments between heterogenous
+ * elements:
+ *
+ * ```ts
+ * intersperse(trivia, [key("function"), ident, args, ...etc])
+ * ```
+ */
+export const intersperse = <T extends [...Parser<unknown>[]], Sep>(
+  sep: Parser<Sep>,
+  parsers: [...T],
+): Parser<Intersperse<UnwrapParsers<T>, Sep>> => {
+  return seq(...parsers.flatMap((parser) => [sep, parser]).slice(1)) as Parser<
+    Intersperse<UnwrapParsers<T>, Sep>
+  >;
+};
+
+/**
  * Try both parsers in sequence, return the first one that's succesful.
  * Fatal errors from either parser will be propagated immediately.
  */
